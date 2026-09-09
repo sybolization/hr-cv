@@ -1,0 +1,24 @@
+# 密钥与本地配置 —— 严禁提交
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 运行时数据（SQLite 库、日志）
+.data/
+
+# 构建产物
+build/
+dist/
+output/
+
+# IDE / 工具
+.trae/
+.idea/
+.vscode/
+
+# 系统文件
+Thumbs.db
+.DS_Store

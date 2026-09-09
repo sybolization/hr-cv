@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI简历筛选助手</title>
+    <link rel="stylesheet" href="/style.css?v=18" />
+</head>
+<body>
+    <div id="svcBanner" class="svc-banner hidden">
+        <span>服务未运行，请重新启动应用</span>
+        <button id="svcRetryBtn" class="ghost-btn">重试</button>
+    </div>
+    <button id="sidebarToggle" class="sidebar-toggle" title="会话列表">☰</button>
+    <div class="shell">
+        <aside class="sidebar" id="sidebar">
+            <button id="newChatBtn" class="new-chat-btn">＋ 新会话</button>
+            <div id="sessionList" class="session-list"></div>
+            <button id="llmSettingsBtn" class="new-chat-btn llm-entry" title="配置模型接入（OpenAI 兼容）">⚙ 模型接入</button>
+        </aside>
+        <div class="app">
+            <div class="column">
+                <main id="chat" class="chat">
+                    <div id="welcome" class="welcome">
+                        <div class="welcome-title">上传简历，智能筛选候选人</div>
+                        <div class="welcome-sub">
+                            点击左下角 <span class="icon-chip">＋</span> 批量上传 <b>.pdf</b> 或 <b>.md</b> 简历，发送问题后将自动提取文字（扫描版 PDF 走 OCR）并智能筛选，例如：<br>
+                            “找一个具备 5 年以上 Python 后端经验、熟悉 FastAPI 与高并发的人。”
+                        </div>
+                    </div>
+                    <!-- 消息将动态渲染于此 -->
+                </main>
+
+                <footer class="composer">
+                    <div id="chips" class="chips"></div>
+                    <div class="input-row">
+                        <label class="attach-btn" title="上传简历">
+                            <input id="fileInput" type="file" accept=".pdf,.md" multiple hidden />
+                            <span class="plus-icon">＋</span>
+                        </label>
+                        <textarea id="prompt" rows="1" placeholder="输入岗位要求…（Enter 发送，Shift+Enter 换行）"></textarea>
+                        <button id="sendBtn" class="send-btn" title="发送">↑</button>
+                    </div>
+                    <div class="hint-row">
+                        <span class="hint">支持批量导入 PDF / Markdown，PDF 扫描版将自动 OCR</span>
+                        <span class="hint-actions">
+                            <button id="exportLogBtn" class="ghost-btn" title="导出运行日志（zip，含原始报错堆栈）">导出日志</button>
+                            <button id="clearBtn" class="ghost-btn" title="清空当前会话的简历与对话">清空</button>
+                        </span>
+                    </div>
+                </footer>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知（右上角） -->
+    <div id="toasts" class="toasts"></div>
+
+    <!-- LLM 接入设置弹窗 -->
+    <div id="llmModal" class="modal hidden">
+        <div class="modal-mask" data-close-llm></div>
+        <div class="modal-card">
+            <div class="modal-head">
+                <span>模型接入（OpenAI 兼容）</span>
+                <button class="modal-close" data-close-llm title="关闭">×</button>
+            </div>
+            <div class="modal-body llm-form">
+                <label for="llmBaseUrl">Base URL</label>
+                <input id="llmBaseUrl" type="text" placeholder="https://api.deepseek.com" />
+                <label for="llmApiKey">API Key（留空保持不变）</label>
+                <input id="llmApiKey" type="password" placeholder="sk-..." autocomplete="new-password" />
+                <label for="llmModel">模型 ID</label>
+                <input id="llmModel" type="text" placeholder="deepseek-v4-flash-vision-exp" />
+                <label for="llmEffort">推理力度（可选）</label>
+                <select id="llmEffort">
+                    <option value="">默认（high）</option>
+                    <option value="low">low（更快）</option>
+                    <option value="high">high</option>
+                    <option value="max">max</option>
+                </select>
+                <div id="llmTestResult" class="llm-test-result hidden"></div>
+                <div class="llm-actions">
+                    <button id="llmTestBtn" class="ghost-btn">测试连接</button>
+                    <button id="llmSaveBtn" class="new-chat-btn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出日志确认弹窗 -->
+    <div id="exportModal" class="modal hidden">
+        <div class="modal-mask" data-close-export></div>
+        <div class="modal-card">
+            <div class="modal-head">
+                <span>导出报错日志</span>
+                <button class="modal-close" data-close-export title="关闭">×</button>
+            </div>
+            <div class="modal-body export-note">
+                这里导出的是<b>应用运行报错日志</b>（zip，含原始错误堆栈），用于在遇到错误时反馈给开发者排查问题，
+                <b>并非对话记录的导出</b>。<br/><br/>
+                如遇错误，请导出后发送至开发者邮箱：<b>boyang.xie@molex.com</b>
+            </div>
+            <div class="export-actions">
+                <button id="exportCancelBtn" class="ghost-btn" data-close-export>取消</button>
+                <button id="exportConfirmBtn" class="new-chat-btn">导出日志</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 退出确认弹窗（桌面版点 × 时唤起，居中模态） -->
+    <div id="exitModal" class="modal hidden">
+        <div class="modal-mask"></div>
+        <div class="modal-card">
+            <div class="modal-head">
+                <span>退出应用</span>
+            </div>
+            <div class="modal-body export-note">
+                确定退出AI简历筛选助手吗？关闭后将停止本地服务。
+            </div>
+            <div class="export-actions">
+                <button id="exitCancelBtn" class="ghost-btn">取消</button>
+                <button id="exitOkBtn" class="new-chat-btn">退出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 简历查看弹窗 -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-mask" data-close></div>
+        <div class="modal-card">
+            <div class="modal-head">
+                <span id="modalTitle">简历</span>
+                <button class="modal-close" data-close title="关闭">×</button>
+            </div>
+            <pre id="modalBody" class="modal-body"></pre>
+        </div>
+    </div>
+
+    <script src="/app.js?v=19"></script>
+</body>
+</html>

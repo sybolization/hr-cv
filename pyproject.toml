@@ -1,0 +1,29 @@
+[project]
+name = "hr-cv"
+version = "0.1.0"
+description = "HR-CV 简历筛选助手：PDF/MD 简历解析（含 OCR）+ LLM 候选筛选 Demo"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.141.1",
+    "openai>=3.7.0",
+    "pypdf>=6.16.2",
+    "pypdfium2>=5.13.0",
+    "pytesseract>=0.3.13",
+    "python-dotenv>=1.2.3",
+    "python-multipart>=0.0.32",
+    "pywebview>=6.2.1",
+    "uvicorn[standard]>=0.52.4",
+]
+
+[project.scripts]
+hr-cv = "hr_cv.main:run"
+
+[build-system]
+requires = ["uv_build>=0.12.9,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.2",
+]
